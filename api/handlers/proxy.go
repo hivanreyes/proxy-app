@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	iris "github.com/kataras/iris"
 	"wizeline.github.com/hivanreyes/proxy-app/api/middleware"
 )
@@ -11,5 +12,10 @@ func HandlerRedirection(app *iris.Application){
 }
 
 func proxyHandler(c iris.Context){
-	c.JSON(iris.Map{"result": "ok"})
+	response, err := json.Marshal(middleware.Que)
+	if err != nil {
+		c.JSON(iris.Map{"status": 400, "result": "parse error"})
+		return
+	}
+	c.JSON(iris.Map{"result": string(response)})
 }

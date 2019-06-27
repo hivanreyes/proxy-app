@@ -17,5 +17,6 @@ func proxyHandler(c iris.Context){
 		c.JSON(iris.Map{"status": 400, "result": "parse error"})
 		return
 	}
-	c.JSON(iris.Map{"result": string(response)})
+
+	c.JSON(iris.Map{"result": string(response) })
 }

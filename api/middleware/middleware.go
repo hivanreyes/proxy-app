@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"bufio"
-	"fmt"
 	iris "github.com/kataras/iris"
 	"log"
 	"os"
@@ -105,6 +104,7 @@ func (pq *PriorityQueue) update(item *Queue, domain string, weigth int, priority
 }
 
 func ProxyMiddleware(c iris.Context){
+	Que = Que[:0]
 	domain := c.GetHeader("domain")
 	priority := c.GetHeader("priority")
 	weigth := c.GetHeader("weigth")
@@ -133,10 +133,9 @@ func ProxyMiddleware(c iris.Context){
 	heap.Push(&pq, newEntry)
 	pq.update(newEntry, newEntry.Domain, newEntry.Weigth, newEntry.Priority)
 
-
 	for pq.Len() > 0 {
 		item := heap.Pop(&pq).(*Queue)
-		fmt.Println(item.Priority, item.Domain, item.Weigth)
+		Que = append(Que, item.Domain)
 	}
 	c.Next()
 }

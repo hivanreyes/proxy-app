@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"strconv"
+	"container/heap"
 )
 
 // Queue
@@ -16,6 +17,7 @@ type Queue struct {
 	Domain string
 	Weigth int
 	Priority int
+	index int
 }
 
 // Que declaration
@@ -36,10 +38,12 @@ func(q *Queue) Read() []*Queue {
 
 	var data []*Queue
 	tmp := &Queue{}
+	index :=0
 	
 	for scanner.Scan() {
 		if scanner.Text() == "" {
 			tmp = &Queue{}
+			index++
 			continue
 		}
 		lineArray := strings.Split(scanner.Text(), ":")
@@ -52,6 +56,7 @@ func(q *Queue) Read() []*Queue {
 				tmp.Weigth = val;
 			}else if lineArray[0] == "priority"{
 				tmp.Priority = val;
+				tmp.index = index
 				data = append(data, tmp)
 			}
 		}
@@ -59,23 +64,79 @@ func(q *Queue) Read() []*Queue {
 	return data;
 }
 
+type PriorityQueue []*Queue
+
+func (pq PriorityQueue) Len() int { return len(pq) }
+
+func (pq PriorityQueue) Less(i, j int) bool {
+	var sum1 = pq[i].Priority + pq[i].Weigth
+	var sum2 = pq[j].Priority + pq[j].Weigth
+	return sum1 > sum2
+}
+
+func (pq PriorityQueue) Swap(i, j int) {
+	pq[i], pq[j] = pq[j], pq[i]
+	pq[i].index = i
+	pq[j].index = j
+}
+
+func (pq *PriorityQueue) Push(x interface{}) {
+	n := len(*pq)
+	item := x.(*Queue)
+	item.index = n
+	*pq = append(*pq, item)
+}
+
+func (pq *PriorityQueue) Pop() interface{} {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	item.index = -1 // for safety
+	*pq = old[0 : n-1]
+	return item
+}
+
+// update modifies the priority and value of an Item in the queue.
+func (pq *PriorityQueue) update(item *Queue, domain string, weigth int, priority int) {
+	item.Domain = domain
+	item.Weigth = weigth
+	item.Priority = priority
+	heap.Fix(pq, item.index)
+}
+
 func ProxyMiddleware(c iris.Context){
 	domain := c.GetHeader("domain")
-	if len(domain) == 0 {
+	priority := c.GetHeader("priority")
+	weigth := c.GetHeader("weigth")
+	if len(domain) == 0 || len(priority) == 0 || len(weigth) == 0 {
 		c.JSON(iris.Map{"status": 400, "result": "error"})
 		return
 	}
+
+	pq := make(PriorityQueue, 0)
+	heap.Init(&pq)
+
 	var repo Repository
 	repo = &Queue{}
-	fmt.Println("FROM HEADER", domain)
 	for _, row := range repo.Read() {
-		fmt.Println("FROM SOURCE", row.Domain)
-
-		//  ALGORITHM HERE...
-		//  USE QUE
-
+		heap.Push(&pq, row)
+		pq.update(row, row.Domain, row.Weigth, row.Priority)
 	}
-	Que = append(Que, domain)
 
+	priorityInt, _ := strconv.Atoi(priority)
+	weightInt, _ := strconv.Atoi(weigth)
+	newEntry := &Queue{}
+	newEntry.Domain = domain
+	newEntry.Weigth = weightInt
+	newEntry.Priority = priorityInt
+
+	heap.Push(&pq, newEntry)
+	pq.update(newEntry, newEntry.Domain, newEntry.Weigth, newEntry.Priority)
+
+
+	for pq.Len() > 0 {
+		item := heap.Pop(&pq).(*Queue)
+		fmt.Println(item.Priority, item.Domain, item.Weigth)
+	}
 	c.Next()
 }

@@ -21,6 +21,7 @@ type Queue struct {
 
 // Que declaration
 var Que []string
+var readFromFile bool = false
 
 type Repository interface {
 	Read() []*Queue
@@ -70,7 +71,7 @@ func (pq PriorityQueue) Len() int { return len(pq) }
 func (pq PriorityQueue) Less(i, j int) bool {
 	var sum1 = pq[i].Priority + pq[i].Weigth
 	var sum2 = pq[j].Priority + pq[j].Weigth
-	return sum1 > sum2
+	return sum1 < sum2
 }
 
 func (pq PriorityQueue) Swap(i, j int) {
@@ -103,6 +104,8 @@ func (pq *PriorityQueue) update(item *Queue, domain string, weigth int, priority
 	heap.Fix(pq, item.index)
 }
 
+var pq = make(PriorityQueue, 0)
+
 func ProxyMiddleware(c iris.Context){
 	Que = Que[:0]
 	domain := c.GetHeader("domain")
@@ -113,14 +116,16 @@ func ProxyMiddleware(c iris.Context){
 		return
 	}
 
-	pq := make(PriorityQueue, 0)
 	heap.Init(&pq)
 
-	var repo Repository
-	repo = &Queue{}
-	for _, row := range repo.Read() {
-		heap.Push(&pq, row)
-		pq.update(row, row.Domain, row.Weigth, row.Priority)
+	if(readFromFile == false) {
+		var repo Repository
+		repo = &Queue{}
+		for _, row := range repo.Read() {
+			heap.Push(&pq, row)
+			pq.update(row, row.Domain, row.Weigth, row.Priority)
+		}
+		readFromFile = true
 	}
 
 	priorityInt, _ := strconv.Atoi(priority)
@@ -133,9 +138,8 @@ func ProxyMiddleware(c iris.Context){
 	heap.Push(&pq, newEntry)
 	pq.update(newEntry, newEntry.Domain, newEntry.Weigth, newEntry.Priority)
 
-	for pq.Len() > 0 {
-		item := heap.Pop(&pq).(*Queue)
-		Que = append(Que, item.Domain)
+	for i := pq.Len(); i > 0; i-- {
+		Que = append(Que, pq[i-1].Domain)
 	}
 	c.Next()
 }

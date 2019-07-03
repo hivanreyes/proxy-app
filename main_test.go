@@ -38,9 +38,9 @@ func TestAlgorithmn(t *testing.T){
 		Priority string 
 		Output string
 	}{
-		{Domain: "test1", Weigth: "5", Priority: "1", Output: `["beta","alpha","test1","omega"]`},
-		{Domain: "test2", Weigth: "5", Priority: "1", Output: `["beta","alpha","test2","omega"]`},
-		{Domain: "test3", Weigth: "5", Priority: "", Output: "error"},
+		{Domain: "test1", Weigth: "1", Priority: "1", Output: `["alpha","beta","omega","test1"]`},
+		{Domain: "test2", Weigth: "5", Priority: "4", Output: `["test2","alpha","beta","omega","test1"]`},
+		{Domain: "test4", Weigth: "5", Priority: "", Output: "error"},
 	}
 
 	valuesToCompare := &Response{}
